@@ -146,7 +146,10 @@ var padeditor = (function()
     {
       pad.addHistoricalAuthors(dataFromServer.historicalAuthorData);
       self.ace.importAText(dataFromServer.atext, dataFromServer.apool, true);
-    }
+    },
+	hideTblContextMenu:function(){
+		$.tblContextMenu.hide();
+	}
   };
   return self;
 }());

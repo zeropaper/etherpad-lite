@@ -141,7 +141,8 @@ linestylefilter.getLineStyleFilter = function(lineLength, aline, textAndClassFun
           // prevent infinite loop if something funny's going on
           return nextAfterAuthorColors(txt, cls);
         }
-        var spanSize = txt.length;
+        var spanSize = leftInAuthor = txt.length;
+		//var spanSize = txt.length;
         if (spanSize > leftInAuthor)
         {
           spanSize = leftInAuthor;

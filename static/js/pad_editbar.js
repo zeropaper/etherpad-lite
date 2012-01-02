@@ -96,6 +96,7 @@ var padeditbar = (function()
     {
       $("#editbar").addClass('disabledtoolbar').removeClass("enabledtoolbar");
     },
+
     toolbarClick: function(cmd)
     {  
       if (self.isEnabled())
@@ -123,8 +124,19 @@ var padeditbar = (function()
         {
           padeditor.ace.callWithAce(function(ace)
           {
-            if (cmd == 'bold' || cmd == 'italic' || cmd == 'underline' || cmd == 'strikethrough') ace.ace_toggleAttributeOnSelection(cmd);
+			var OPTIONS_TBL = ['addTbl','addTblRowA','addTblRowB','addTblColL','addTblColR','delTbl','delTblRow','delTblCol'];
+			if(typeof(cmd.payload)!='undefined'){ace.ace_addTable(cmd);}			
+            else if (cmd == 'bold' || cmd == 'italic' || cmd == 'underline' || cmd == 'strikethrough') ace.ace_toggleAttributeOnSelection(cmd);
             else if (cmd == 'undo' || cmd == 'redo') ace.ace_doUndoRedo(cmd);
+			else if (cmd == 'isFocusWithinTbl'){ padeditor.isFocusWithinTbl = ace.ace_isFocusWithinTbl();}
+			else if (cmd !=null){
+				if($.inArray(cmd,OPTIONS_TBL) != -1){
+					ace.ace_doInsertOrDeleteTableRowCol(cmd);
+				}
+				else if(cmd.indexOf('addTbl') != -1){
+					ace.ace_doInsertOrDeleteTableRowCol('addTbl',cmd);
+				}
+			}
             else if (cmd == 'insertunorderedlist') ace.ace_doInsertUnorderedList();
             else if (cmd == 'indent')
             {

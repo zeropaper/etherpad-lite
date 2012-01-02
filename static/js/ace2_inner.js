@@ -20,6 +20,8 @@
  * limitations under the License.
  */
 
+var OPTIONS_TBL = ['addTbl','addTblRowA','addTblRowB','addTblColL','addTblColR','delTbl','delTblRow','delTblCol']
+var tempErrorMessage = "Hmm...something went wrong. ctrl-z is the best thing a man can have. Reporting it to WLOS developers is the 2nd best thing!";
 function OUTER(gscope)
 {
 
@@ -35,7 +37,7 @@ function OUTER(gscope)
   var MIN_LINEDIV_WIDTH = 20;
   var EDIT_BODY_PADDING_TOP = 8;
   var EDIT_BODY_PADDING_LEFT = 8;
-
+  
   var caughtErrors = [];
 
   var thisAuthor = '';
@@ -308,6 +310,10 @@ function OUTER(gscope)
 
   function inCallStack(type, action)
   {
+  
+   if(typeof(type.importTbl)!='undefined'){
+		type=type.importTbl;
+		}		
     if (disposed) return;
 
     if (currentCallStack)
@@ -324,7 +330,7 @@ function OUTER(gscope)
     }
 
     function newEditEvent(eventType)
-    {
+    {		
       return {
         eventType: eventType,
         backset: null
@@ -417,7 +423,9 @@ function OUTER(gscope)
     }
     finally
     {
+		
       var cs = currentCallStack;
+	  
       //console.log("Finished action for: "+type);
       if (cleanExit)
       {
@@ -3482,7 +3490,7 @@ function OUTER(gscope)
   {
     //hide the dropdowns
     window.top.padeditbar.toogleDropDown("none");
-  
+	window.top.padeditor.hideTblContextMenu();
     inCallStack("handleClick", function()
     {
       idleWorkTimer.atMost(200);
@@ -3519,8 +3527,68 @@ function OUTER(gscope)
     }
   }
 
-  function doReturnKey()
+  function createCellAttrObj(currTdInfo){
+	  var thisCellAttr = {};
+	  thisCellAttr.breaks = {}; //[break offset,numOfBrs]
+	  thisCellAttr.breaks [currTdInfo.cellCaretPos]=1;		
+	  return thisCellAttr;
+  }
+  function doTableReturnKey() {
+      var currLine = rep.lines.atIndex(rep.selStart[0]);
+      var currLineText = currLine.text;
+      if (currLineText.indexOf('],"tblId"') == -1) return false;
+      else {
+          try {
+              var tblJSONObj = JSON.parse(currLineText);
+              var table = tblJSONObj.payload;
+              var currTdInfo = getFocusedTdInfo(table);
+              var leftOverTdTxtLen = currTdInfo.leftOverTdTxtLen;
+              var currRow = currTdInfo.row;
+              var currTd = currTdInfo.td;				
+              var attributes = tblJSONObj.cellAttr;
+			  var rowAttrs = attributes[currRow];
+			  if(typeof (rowAttrs) != 'undefined' && rowAttrs==null){
+				rowAttrs = [];
+				attributes[currRow] = rowAttrs;
+			  }
+              if (typeof (rowAttrs) == 'undefined') {//make new row entry
+				  rowAttrs =[]				  				  
+				  rowAttrs[currTd]=createCellAttrObj(currTdInfo);
+				} 
+ 			   else {//update previous entry 
+				 var thisCellAttr = rowAttrs[currTd];
+				 if(typeof (thisCellAttr) != 'undefined' && thisCellAttr==null){
+					thisCellAttr = {};
+					rowAttrs[currTd] = thisCellAttr;
+				 }
+				 if (typeof (thisCellAttr) == 'undefined') {//make new cell attr entry					
+					  rowAttrs[currTd]=createCellAttrObj(currTdInfo);					 
+				  }else{
+					if(typeof(thisCellAttr.breaks [currTdInfo.cellCaretPos]) != 'undefined'){//multiple breaks
+					  thisCellAttr.breaks [currTdInfo.cellCaretPos] += 1; 
+					}
+					else{
+						thisCellAttr.breaks [currTdInfo.cellCaretPos]=1;	
+					}
+					rowAttrs[currTd] = thisCellAttr;
+				  }
+			    }
+				attributes[currRow]=rowAttrs;				
+				rep.selStart[1] = currLineText.indexOf("cellAttr");
+				//rep.selStart[1] = 0;
+				rep.selEnd[1]  = currLineText.length;
+				tblJSONObj.cellAttr = attributes;
+				var newText = JSON.stringify(tblJSONObj);
+				performDocumentReplaceRange(rep.selStart, rep.selEnd, newText.substring(newText.indexOf("cellAttr")));
+          } catch (error) {
+              performDocumentReplaceRange(rep.selStart, rep.selEnd, tempErrorMessage);
+          }
+          return true
+      }
+  }
+  function doReturnKey(insertTable)
   {
+	if(insertTable != 'insertTable' && doTableReturnKey())return;
     if (!(rep.selStart && rep.selEnd))
     {
       return;
@@ -3585,19 +3653,46 @@ function OUTER(gscope)
   }
   editorInfo.ace_doIndentOutdent = doIndentOutdent;
 
-  function doTabKey(shiftDown)
+   function doTabKey(shiftDown)
   {
-    if (!doIndentOutdent(shiftDown))
-    {
-      performDocumentReplaceSelection(THE_TAB);
-    }
+	 var currLine = rep.lines.atIndex(rep.selStart[0]);
+	 var currLineText = currLine.text;
+	 if(currLineText.indexOf('tblId')!=-1){
+		performDocumentTableTabKey();
+	 }
+	 else if (!doIndentOutdent(shiftDown)){
+		performDocumentReplaceSelection(THE_TAB);
+	}
   }
-
+ 
+ 
+ 
+  function isTblCellDeleteOk(){
+	
+	var currLine = rep.lines.atIndex(rep.selStart[0]);
+	var currLineText = currLine.text;
+	if(currLineText.indexOf('],"tblId"') == -1)return true;
+	var isDeleteAccepted = false;
+	try{
+		var tblJSONObj = JSON.parse(currLineText);	
+		var table = tblJSONObj.payload;
+		var currTdInfo = getFocusedTdInfo(table);
+		cellEntryLen = table[currTdInfo.row][currTdInfo.td].length;
+		if(cellEntryLen  != 0 && cellEntryLen > (currTdInfo.leftOverTdTxtLen  - OVERHEAD_LEN_MID)){
+			isDeleteAccepted = true;
+		}
+		
+	}catch(error){
+		isDeleteAccepted = false;
+	}
+	return isDeleteAccepted;
+  }
   function doDeleteKey(optEvt)
   {
     var evt = optEvt || {};
     var handled = false;
     if (rep.selStart)
+	  if(!isTblCellDeleteOk()){return;}
     {
       if (isCaret())
       {
@@ -5730,6 +5825,355 @@ function OUTER(gscope)
       }
     }
   }
+
+
+  
+var OVERHEAD_LEN_PRE       = '{"payload":[["'.length;
+var OVERHEAD_LEN_MID       = '","'.length;
+var OVERHEAD_LEN_ROW_START = '["'.length;
+var OVERHEAD_LEN_ROW_END   = '"],'.length;
+
+
+/* Helper function. not meant to be used as a standalone function
+   requires rowStartOffset
+ */
+function _getRowEndOffset(rowStartOffset,tds){
+	var rowEndOffset = rowStartOffset+OVERHEAD_LEN_ROW_START;
+	for(var i =0,len=tds.length;i<len;i++){
+		var overHeadLen = OVERHEAD_LEN_MID;
+		if(i==len-1){
+			overHeadLen = OVERHEAD_LEN_ROW_END;
+		}
+		rowEndOffset += tds[i].length+overHeadLen;
+	}
+	return rowEndOffset;
+}
+
+/**
+current row index, 
+td index ,
+the length of leftover text of the current cell,
+current row start offset,
+current row end offset,
+current td start offset,
+current td end offset,
+and cellCaretPos
+*/
+function getFocusedTdInfo(table){	
+	var payloadOffset  = rep.selStart[1] - OVERHEAD_LEN_PRE;
+	var rowStartOffset = 0 ;
+	var payloadSum     = 0;	
+	for(var rIndex = 0,rLen = table.length;rIndex<rLen;rIndex++){
+		var tds = table[rIndex];
+		for(var tIndex = 0,tLen  = tds.length;tIndex<tLen;tIndex++){
+			var overHeadLen = OVERHEAD_LEN_MID;
+			if(tIndex==tLen-1){
+				overHeadLen = OVERHEAD_LEN_ROW_END;
+			}
+			payloadSum += tds[tIndex].length+overHeadLen;			
+			if(payloadSum>=payloadOffset){ 
+				if(payloadSum==payloadOffset){
+					tIndex++;
+					}
+				var leftOverTdTxtLen = payloadSum - payloadOffset==0?table[rIndex][tIndex].length+OVERHEAD_LEN_MID:payloadSum - payloadOffset;
+				var cellCaretPos = tds[tIndex].length - (leftOverTdTxtLen - overHeadLen);
+				var rowEndOffset = _getRowEndOffset(rowStartOffset	,tds) ;
+				return {
+					row:rIndex,
+					td:tIndex,
+					leftOverTdTxtLen:leftOverTdTxtLen,
+					rowStartOffset:rowStartOffset,
+					rowEndOffset:rowEndOffset,
+					cellStartOffset:payloadSum - tds[tIndex].length - overHeadLen,
+					cellEndOffset:payloadSum,
+					cellCaretPos:cellCaretPos
+				};
+			}
+		}
+		rowStartOffset =payloadSum;
+		payloadSum += OVERHEAD_LEN_ROW_START;				
+	}		
+}
+/* handles tab key within a table */
+function performDocumentTableTabKey() {
+    var newText = "";
+    var currLine = rep.lines.atIndex(rep.selStart[0]);
+    var currLineText = currLine.text;
+    try {        
+        var payload = JSON.parse(currLineText).payload;
+        var currTdInfo = getFocusedTdInfo(payload);
+        var leftOverTdTxtLen = currTdInfo.leftOverTdTxtLen;
+        var currRow = currTdInfo.row;
+        var currTd = currTdInfo.td;
+        var nextTdTxtLen = 0;
+        if (typeof (payload[currRow][currTd + 1]) == "undefined") { //next row
+            currRow += 1;
+            if (typeof (payload[currRow]) == "undefined") { //create new row and move caret to this new row
+                newText = createRowText(payload);
+                var endOfPayloadOffset = currLineText.indexOf('],"tblId"');
+                rep.selStart[1] = rep.selStart[1] = rep.selEnd[1] = endOfPayloadOffset;
+                newText = "," + newText;
+                performDocumentReplaceRange(rep.selStart, rep.selEnd, newText);
+                rep.selStart[1] = rep.selStart[1] = rep.selEnd[1] = endOfPayloadOffset + OVERHEAD_LEN_ROW_START + 1;
+                newText = "";
+                currTd = -1;
+
+            } else { //just move caret to existing next row
+                currTd = -1;
+                leftOverTdTxtLen += OVERHEAD_LEN_ROW_START;
+            }
+        }
+        nextTdTxtLen = typeof (payload[currRow]) == 'undefined' ? -leftOverTdTxtLen : payload[currRow][currTd + 1].length;
+        rep.selStart[1] = rep.selEnd[1] = rep.selEnd[1] + nextTdTxtLen + leftOverTdTxtLen;
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, newText);
+    } catch (error) {
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, tempErrorMessage);
+    }
+}
+ 
+
+ //tbl functions
+ 
+ function isFocusWithinTbl(){	
+	var currLineText = rep.lines.atIndex(rep.selStart[0]).text;	
+	if (currLineText.indexOf("data-tables") == -1) {
+		return false;
+	}
+	return true;
+ }
+ editorInfo.ace_isFocusWithinTbl = isFocusWithinTbl;
+ function doInsertOrDeleteTableRowCol(cmd, xByY) {
+     switch (cmd) {         
+     case OPTIONS_TBL[0]:addTable(xByY);break;         
+     case OPTIONS_TBL[1]:insertTblRow("addA");break;
+     case OPTIONS_TBL[2]:insertTblRow("addB");break;         
+     case OPTIONS_TBL[3]:insertTblColumn("addL");break;
+     case OPTIONS_TBL[4]:insertTblColumn("addR");break;         
+     case OPTIONS_TBL[5]:deleteTable();break;         
+     case OPTIONS_TBL[6]:deleteTblRow();break;         
+     case OPTIONS_TBL[7]:deleteColumn();break;
+     }
+ }
+editorInfo.ace_doInsertOrDeleteTableRowCol = doInsertOrDeleteTableRowCol;
+
+function addTable(tableObj) {
+    var currLineText = rep.lines.atIndex(rep.selStart[0]).text;
+    //if the carret is within a table, add the new table at the bottom
+    if (currLineText.indexOf("data-tables") != -1) {
+        rep.selEnd[1] = rep.selStart[1] = currLineText.length;
+        doReturnKey('insertTable');
+        doReturnKey('insertTable');
+    }
+    //if no col/row specified, create a default 3X3  empty table
+    if (tableObj == null) {
+        tableObj = {
+            "payload": [
+                [" ", " ", " "],
+                [" ", " ", " "],
+                [" ", " ", " "], ],
+            "tblId": 1,
+            "tblClass": "data-tables",
+            "trClass": "alst",
+            "tdClass": "hide-el",
+            "cellAttr": []
+        }
+    }
+    //xbyy cols and rows have been specified or an actual payload object is present, for the former, create the payload of such size.
+    xByYSelect = typeof (tableObj) == "object" ? null : tableObj.split("X");
+    if (xByYSelect != null && xByYSelect.length == 3) {
+        var cols = parseInt(xByYSelect[1]);
+        var rows = parseInt(xByYSelect[2]);
+        tableObj = {
+            "payload": [],
+            "tblId": 1,
+            "tblClass": "data-tables",
+            "trClass": "alst",
+            "tdClass": "hide-el",
+            "cellAttr": []
+        }
+        var payload = [];
+        for (var i = 0; i < rows; i++) {
+            colsArr = [];
+            for (var j = 0; j < cols; j++) {
+                colsArr[j] = " ";
+            }
+            payload[i] = colsArr;
+        }
+        tableObj.payload = payload;
+    }
+    var newText = JSON.stringify(tableObj);
+    var start = rep.selStart[1];
+    performDocumentReplaceRange(rep.selStart, rep.selEnd, newText);
+    //position the caret to the cell 0.
+    rep.selEnd[1] = rep.selStart[1] = start + OVERHEAD_LEN_PRE;
+    performDocumentReplaceRange(rep.selStart, rep.selEnd, "");
+    return newText;
+}
+editorInfo.ace_addTable = addTable;
+
+//delete a table, also removes table overhead
+function deleteTable(){
+	try{
+		rep.selStart[1] = 0;
+		rep.selEnd[1] = rep.lines.atIndex(rep.selStart[0]).text.length;	
+		performDocumentReplaceRange(rep.selStart, rep.selEnd, "");
+	}catch(error){
+		performDocumentReplaceRange(rep.selStart, rep.selEnd, tempErrorMessage);
+	}
+}
+
+//insert a row
+function insertTblRow(aboveOrBelow) {
+    try {
+        var newText = "";
+        var currLineText = rep.lines.atIndex(rep.selStart[0]).text;        
+        var payload = JSON.parse(currLineText).payload;
+        var currTdInfo = getFocusedTdInfo(payload);
+        var currRow = currTdInfo.row;
+        var lastRowOffSet = 0;
+        if (aboveOrBelow == 'addA') {
+            newText = createRowText(payload) + ",";
+            rep.selStart[1] = rep.selEnd[1] = OVERHEAD_LEN_PRE + currTdInfo.rowStartOffset;
+            if (currRow == 0) { //first row has special rowStartOffset
+				// because the OVERHEAD_LEN_PRE constant also includes the the starting bracket and quote of the payload, we must subtract by 2.
+                rep.selStart[1] = rep.selEnd[1] = OVERHEAD_LEN_PRE + currTdInfo.rowStartOffset - 2; 
+            }
+        } else { //below curr row ( aboveOrBelow = 'addB')
+            newText = createRowText(payload);
+            rep.selStart[1] = rep.selEnd[1] = OVERHEAD_LEN_PRE + currTdInfo.rowEndOffset;
+            if (currRow == 0 && typeof (payload[currRow + 1]) == "undefined") { //only one existed
+                rep.selStart[1] = rep.selEnd[1] = OVERHEAD_LEN_PRE + currTdInfo.rowEndOffset - 3;
+                newText = "," + newText;
+            } else if (currRow == 0) { //first row has special rowStartOffset
+                rep.selStart[1] = rep.selEnd[1] = OVERHEAD_LEN_PRE + currTdInfo.rowEndOffset - 2;
+                newText = newText + ",";
+            } else if (typeof (payload[currRow + 1]) == "undefined") { //last row has special rowEndOffset
+                rep.selStart[1] = rep.selEnd[1] = OVERHEAD_LEN_PRE + currTdInfo.rowEndOffset - 1;
+                newText = "," + newText;
+                lastRowOffSet = 1;
+            } else { //for new row between existing rows
+                newText = newText + ",";
+            }
+        }
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, newText);
+        //fix caret
+        rep.selStart[1] = rep.selEnd[1] = rep.selEnd[1] - newText.length + OVERHEAD_LEN_ROW_START + lastRowOffSet;
+        newText = "";
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, newText);
+    } catch (error) {
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, tempErrorMessage);
+    }
+}
+
+//delete a row
+function deleteTblRow() {
+    try {
+        var currLineText = rep.lines.atIndex(rep.selStart[0]).text;
+        var payload = JSON.parse(currLineText).payload;
+        var currTdInfo = getFocusedTdInfo(payload);
+        var currRow = currTdInfo.row;
+        var caretOffSet = 0; //for updating caret position
+        //delete middle rows			 	  
+        if (currRow != 0 && typeof (payload[currRow + 1]) != "undefined") {
+            rep.selStart[1] = OVERHEAD_LEN_PRE + currTdInfo.rowStartOffset;
+            rep.selEnd[1] = OVERHEAD_LEN_PRE + currTdInfo.rowEndOffset;
+            caretOffSet = OVERHEAD_LEN_ROW_START;
+        }
+        //only one row is present, delete the entire table, including overhead
+        else if (currRow == 0 && typeof (payload[currRow + 1]) == "undefined") {
+            rep.selStart[1] = 0;
+            rep.selEnd[1] = currLineText.length;
+        }
+        //delete first or last row
+        else {
+            rep.selStart[1] = OVERHEAD_LEN_PRE + currTdInfo.rowStartOffset - 1;
+            rep.selEnd[1] = OVERHEAD_LEN_PRE + currTdInfo.rowEndOffset - 1;
+            caretOffSet = -OVERHEAD_LEN_ROW_END;
+        }
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, "");
+        rep.selEnd[1] = rep.selStart[1] = rep.selStart[1] + caretOffSet;
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, "");
+    } catch (error) {
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, tempErrorMessage);
+    }
+}
+
+
+//insert a column...not the most efficient implementation...resets entire table string
+function insertTblColumn(leftOrRight){
+	try{
+		var currLineText = rep.lines.atIndex(rep.selStart[0]).text;
+		var tblJSONObj = JSON.parse(currLineText);	
+		var payload = tblJSONObj.payload;
+		var currTdInfo = getFocusedTdInfo(payload);
+		var currRow = currTdInfo.row;
+		var currTd = currTdInfo.td;
+		if(leftOrRight=="addR"){
+			currTd +=  1;
+			}
+		tblJSONObj.payload =tblJSONObj.payload = updatePayload(payload,currTd,'add');;
+		var originalSelStart = rep.selStart[1];
+		rep.selStart[1] = 0;
+		rep.selEnd[1] = currLineText.length;			
+		performDocumentReplaceRange(rep.selStart, rep.selEnd, JSON.stringify(tblJSONObj));				
+		//update caret position
+		rep.selStart[1] = rep.selEnd[1]=originalSelStart + currTdInfo.leftOverTdTxtLen;		
+		performDocumentReplaceRange(rep.selStart, rep.selEnd, "");	
+	}catch(error){
+		performDocumentReplaceRange(rep.selStart, rep.selEnd, tempErrorMessage);
+	}
+}
+function updatePayload(payload, currTd, addOrDel) {
+    for (var rIndex = 0, rLen = payload.length; rIndex < rLen; rIndex++) {
+        var row = payload[rIndex];
+        if (addOrDel == 'add') {//insert column
+            row.splice(currTd, 0, " ");
+        } else { //remove column
+            row.splice(currTd, 1);
+        }
+        payload[rIndex] = row;
+    }
+    return payload;
+}
+
+function deleteColumn() {
+    try {
+        var currLineText = rep.lines.atIndex(rep.selStart[0]).text;
+        var tblJSONObj = JSON.parse(currLineText);
+        var payload = tblJSONObj.payload;
+        var currTdInfo = getFocusedTdInfo(payload);
+        var currRow = currTdInfo.row;
+        var currTd = currTdInfo.td;        
+        tblJSONObj.payload = updatePayload(payload,currTd,'del');
+        rep.selStart[1] = 0;
+        rep.selEnd[1] = currLineText.length;
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, JSON.stringify(tblJSONObj));		
+		//update caret position
+        rep.selStart[1] = rep.selEnd[1] = OVERHEAD_LEN_PRE;        
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, "");
+
+    } catch (error) {
+        performDocumentReplaceRange(rep.selStart, rep.selEnd, tempErrorMessage);
+    }
+}
+  
+function createRowText(payload) {
+    var rowText = "";
+    var numOfTdTags = typeof (payload) == "undefined" ? 2 : payload[0].length;
+    if (numOfTdTags <= 0) {
+        rowText = '[" "," "," "]';
+    } else {
+        var rowText = "[";
+        for (var i = 0; i < numOfTdTags; i++) {
+            rowText += "\" \"";
+            if (i < numOfTdTags - 1) {
+                rowText += ",";
+            }
+        }
+        rowText += "]";
+    }
+    return rowText;
+}
 
 };
 

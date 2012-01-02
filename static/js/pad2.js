@@ -658,6 +658,9 @@ var pad = {
       padeditbar.toolbarClick(cmd);
     }
   },
+  isFocusWithinTbl:function (){
+	padeditbar.toolbarClick('isFocusWithinTbl');	
+  },
   dmesg: function(m)
   {
     if (pad.getIsDebugEnabled())

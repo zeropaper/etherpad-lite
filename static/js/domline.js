@@ -164,14 +164,26 @@ domline.createDomLine = function(nonEmpty, doesWrap, optBrowser, optDocument)
         }
         extraOpenTags = extraOpenTags + '<a href="' + href.replace(/\"/g, '&quot;') + '">';
         extraCloseTags = '</a>' + extraCloseTags;
+		html.push('<span class="', cls || '', '">', extraOpenTags, perTextNodeProcess(domline.escapeHTML(txt)), extraCloseTags, '</span>');
       }
-      if (simpleTags)
+	  else if(txt.indexOf("data-tables")!=-1){		
+		try{
+			tblJSONObj = JSON.parse(txt);	
+			var htmlTbl = buildText(tblJSONObj);
+			html.push('<span class="', cls || '', '">',htmlTbl, perTextNodeProcess(""), '</span>');
+		}catch(error){
+		 html.push('<span class="', cls || '', '">',"hmm...something went wrong. ctrl-z is the best thing a man could have. Reporting it to WLOS developers is the 2nd best thing!", perTextNodeProcess(""), '</span>');
+		}
+	  }
+      else if (simpleTags)
       {
         simpleTags.sort();
         extraOpenTags = extraOpenTags + '<' + simpleTags.join('><') + '>';
         simpleTags.reverse();
         extraCloseTags = '</' + simpleTags.join('></') + '>' + extraCloseTags;
+		html.push('<span class="', cls || '', '">', extraOpenTags, perTextNodeProcess(domline.escapeHTML(txt)), extraCloseTags, '</span>');
       }
+	  else
       html.push('<span class="', cls || '', '">', extraOpenTags, perTextNodeProcess(domline.escapeHTML(txt)), extraCloseTags, '</span>');
     }
   };
@@ -182,6 +194,63 @@ domline.createDomLine = function(nonEmpty, doesWrap, optBrowser, optDocument)
     result.lineMarker = 0;
   };
 
+  function buildText(tblJSONObj){
+		var htmlTbl = "";
+		var tblId = tblJSONObj.tblId;
+		var tblClass = tblJSONObj.tblClass;
+		var tdClass = tblJSONObj.tdClass;
+		var trClass = tblJSONObj.trClass;
+		var payload = tblJSONObj.payload;
+		var cellAttr = tblJSONObj.cellAttr;
+		var htmlTbl = "<table id='" + tblId + "' class='" + tblClass + "'><tbody>";
+		
+		var rows = tblJSONObj.payload;	
+		for (var j = 0, rl = rows.length; j < rl; j++) {
+			var tds = rows[j];
+			trClassName = "";
+			if(j % 2 == 0){
+				trClassName = "alt";
+				}
+			htmlTbl += "<tr class='"+trClass+" "+trClassName+"'>";
+			var preHeader = "";
+			if(j==0){
+				preHeader = "{\"payload\":["
+			}
+			htmlTbl += "<td class='"+tdClass+" overhead'>" +preHeader+ "[\"" + "</td>";
+			for (var i = 0, tl = tds.length; i < tl; i++) {
+				var quoteAndComma = ",\"";
+				var bracketAndcomma = "";
+				if(i==tl-1){
+					quoteAndComma  = "";
+					bracketAndcomma = "],";
+					if(j==rl-1){
+						bracketAndcomma = "]],\"tblId\":\""+tblId+"\",\"tblClass\":\""+tblClass+"\",\"trClass\":\""+trClass+"\",\"tdClass\":\""+tdClass+"\",\"cellAttr\":"+JSON.stringify(cellAttr)+"}";
+					}
+				}
+				var allCellAttrs = typeof(cellAttr[j])=='undefined'||cellAttr[j]==null?null:cellAttr[j][i];
+				if(allCellAttrs == null || typeof(allCellAttrs) == 'undefined'){
+					htmlTbl += "<td>" + domline.escapeHTML(tds[i]+"") + "<br value='tblBreak'></td><td class='"+tdClass+" overhead'>\"" + quoteAndComma  + bracketAndcomma + "</td>";				
+				}
+				else{					
+					cellsWithBr = "";					
+					var tdText = tds[i];					
+					for(var k =0;k<tdText.length;k++){						
+						var numOfBreaks = allCellAttrs.breaks[k];
+						if(numOfBreaks != null){
+							for(var brIndex = 0; brIndex < numOfBreaks; brIndex++){
+								cellsWithBr  +=  "<br value='tblBreak'>";
+								}
+							}
+						cellsWithBr  += domline.escapeHTML(tdText[k]+"");							
+					}
+					htmlTbl += "<td>" +  cellsWithBr + "<br value='tblBreak'></td><td class='"+tdClass+" overhead'>\"" + quoteAndComma  + bracketAndcomma + "</td>";									
+				}
+			}			
+			htmlTbl += "</tr>";
+		}
+		htmlTbl += "</tbody></table>";
+		return htmlTbl;
+  };
   function writeHTML()
   {
     var newHTML = perHtmlLineProcess(html.join(''));

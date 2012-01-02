@@ -80,15 +80,19 @@ function makeContentCollector(collectStyles, browser, apool, domInterface, class
   };
 
   var _blockElems = {
-    "div": 1,
+    "div": 1, 
     "p": 1,
     "pre": 1,
     "li": 1
   };
 
   function isBlockElement(n)
-  {
-    return !!_blockElems[(dom.nodeTagName(n) || "").toLowerCase()];
+  {  
+   /*tAttr = dom.nodeAttr(n,'value');
+   if(tAttr == null || tAttr!='tblBreak'){ 
+	return !!_blockElems[(dom.nodeTagName(n) || "").toLowerCase()];
+   }*/
+   return !!_blockElems[(dom.nodeTagName(n) || "").toLowerCase()];;
   }
 
   function textify(str)
@@ -430,9 +434,12 @@ function makeContentCollector(collectStyles, browser, apool, domInterface, class
     else
     {
       var tname = (dom.nodeTagName(node) || "").toLowerCase();
-      if (tname == "br")
-      {
+	 if (tname == "br")
+      {	  
+	   tAttr = dom.nodeAttr(node,'value');
+	   if(tAttr == null || tAttr!='tblBreak'){
         cc.startNewLine(state);
+		}
       }
       else if (tname == "script" || tname == "style")
       {
