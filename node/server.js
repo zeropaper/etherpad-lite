@@ -32,6 +32,7 @@ var express = require('express');
 var path = require('path');
 var minify = require('./utils/Minify');
 var formidable = require('formidable');
+var child_process = require('child_process');
 var apiHandler;
 var exportHandler;
 var importHandler;
@@ -380,6 +381,84 @@ async.waterfall([
       { 
         console.error("CLIENT SIDE JAVASCRIPT ERROR: " + fields.errorInfo);
         res.end("OK");
+      });
+    });
+    
+    var fileLogger = log4js.getLogger("file");
+    
+    //File uploads
+    app.post('/upload', function(req, res)
+    {
+      var form = new formidable.IncomingForm();
+      form.uploadDir= "../var";
+      
+      form.parse(req, function(err, fields, files) 
+      { 
+        //handle errors
+        if(err){
+          res.send("Error");
+          fileLogger.error(err);
+          return;
+        }
+        
+        //check if file was sended correctly
+        if(!files["file"]){
+          res.send("Error");
+          fileLogger.error("File was not uploaded correctly");
+          return;
+        }
+        
+        //check if file was sended correctly
+        if(!fields["padid"]){
+          res.send("Error");
+          fileLogger.error("No padid given");
+          return;
+        }
+        
+        fileLogger.info("fileupload recieved for pad '"+ fields["padid"] + "', called '" + files["file"].name+ "'");
+
+        var padid = fields["padid"];
+        
+        async.series([
+          //create the files directory
+          function(callback){
+            fs.mkdir("../var/files", function(err){          
+              if(err && err.code != 'EEXIST'){
+                callback(err)
+              }
+              else {
+                callback();
+              }
+            });
+          }, 
+          //create files directory for this pad
+          function(callback){
+            fs.mkdir("../var/files/" + padid, function(err){          
+              if(err && err.code != 'EEXIST'){
+                callback(err)
+              }
+              else {
+                callback();
+              }
+            });
+          }, 
+          //move the file
+          function(callback){
+            fs.rename(files["file"].path, "../var/files/" + padid + "/" + files["file"].name, callback);
+            
+            child_process.exec("mv '" + files["file"].path)
+          }, 
+        ], function(err){
+          //handle error
+          if(err){
+            fileLogger.error(err);  
+            res.end("Error");
+            return;
+          } 
+        
+          res.end("ok");
+          
+        });
       });
     });
     

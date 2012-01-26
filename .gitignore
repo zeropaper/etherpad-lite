@@ -9,3 +9,4 @@ var/dirty.db
 bin/convertSettings.json
 *~
 *.patch
+var/files
