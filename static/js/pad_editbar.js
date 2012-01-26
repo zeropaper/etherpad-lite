@@ -116,7 +116,11 @@ var padeditbar = (function()
         }
         else if (cmd == 'import_export')
         {
-	      self.toogleDropDown("importexport");
+	        self.toogleDropDown("importexport");
+        }
+        else if (cmd == 'files')
+        {
+	        self.toogleDropDown("files");
         }
 
         else if (cmd == 'save')
@@ -165,7 +169,7 @@ var padeditbar = (function()
     },
     toogleDropDown: function(moduleName)
     {
-      var modules = ["embed", "users", "readonly", "importexport"];
+      var modules = ["embed", "users", "readonly", "importexport", "files"];
       
       //hide all modules
       if(moduleName == "none")
