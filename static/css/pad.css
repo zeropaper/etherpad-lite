@@ -1022,6 +1022,10 @@ position: relative;
   display:none;
 }
 
+#file iframe {
+ border-width: 0px;
+}
+
 #import{
   position:absolute;
   width:250px;
