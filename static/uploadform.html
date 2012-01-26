@@ -11,6 +11,11 @@
       <div id ="container">
         <input type="file" name="file" id="uploadfield" size="10"></input>&nbsp;&nbsp;
         <input type="submit" value="Upload" id="uploadbutton"></input>
+        <input type="hidden" value="pad" id="padfield"></input>
+        <script>
+          var padId = window.location.search.substr(1);
+          document.getElementById("padfield").value = padId;
+        </script>
       </div>
     </form>
   </body>

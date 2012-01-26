@@ -208,6 +208,9 @@ function handshake()
     var padId = document.location.pathname.substring(document.location.pathname.lastIndexOf("/") + 1);
     padId = decodeURIComponent(padId); // unescape neccesary due to Safari and Opera interpretation of spaces
 
+    //set the upload iframe url
+    $("#files iframe").attr("src","../static/uploadform.html?" + padId); 
+
     if(!isReconnect)
       document.title = document.title + " | " + padId.replace(/_+/g, ' ');
 
