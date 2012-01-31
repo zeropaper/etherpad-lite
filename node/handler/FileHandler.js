@@ -7,7 +7,7 @@ var fs = require("fs");
 exports.uploadHandler =  function(req, res)
 {
   var form = new formidable.IncomingForm();
-  form.uploadDir= "../var";
+  form.uploadDir= "../var/tmp";
   
   form.parse(req, function(err, fields, files) 
   { 
