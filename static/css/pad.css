@@ -1018,7 +1018,7 @@ position: relative;
   padding: 10px;
   -moz-border-radius: 6px;
   border-radius: 6px;
-  height:150px;
+  height:250px;
   display:none;
 }
 
@@ -1267,3 +1267,29 @@ label[for=readonlyinput] {
 .rtl{
   direction:RTL;
 } 
+
+#files iframe {
+  position: static;
+}
+
+#filelist {
+  padding: 0 10px;
+  overflow-y:scroll;
+  height: 170px;
+}
+
+#filelist a {
+  color: white;
+}
+
+.filelistelement {
+  margin-top: 5px;
+}
+
+.filelink {
+  font-weight: bold;
+}
+
+.fileaction {
+  float: right;
+}

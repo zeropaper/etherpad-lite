@@ -44,6 +44,7 @@ var padmodals = require('/pad_modals').padmodals;
 var padsavedrevs = require('/pad_savedrevs').padsavedrevs;
 var paduserlist = require('/pad_userlist').paduserlist;
 var padutils = require('/pad_utils').padutils;
+var files = require('/files');
 
 $(document).ready(function()
 {
@@ -487,6 +488,7 @@ var pad = {
     //    padchat.init(clientVars.chatHistory, pad.myUserInfo);
     padconnectionstatus.init();
     padmodals.init();
+    files.init();
 
     pad.collabClient = getCollabClient(padeditor.ace, clientVars.collab_client_vars, pad.myUserInfo, {
       colorPalette: pad.getColorPalette()

@@ -385,8 +385,35 @@ async.waterfall([
       });
     });
     
-    //File uploads
-    app.post('/upload', fileHandler.uploadHandler);
+    //handle file downloads
+    app.get('/p/:pad/download/:file', function(req, res, next)
+    {
+      goToPad(req, res, function() {      
+        hasPadAccess(req, res, function()
+        {
+          var filePath = path.normalize(__dirname + "/../var/files/" + req.params.pad + "/" + req.params.file);
+          res.sendfile(filePath, { maxAge: exports.maxAge });
+        });
+      });
+    });
+
+    //handle file uploads
+    app.post('/p/:pad/upload', function(req, res){
+      goToPad(req, res, function() {      
+        hasPadAccess(req, res, function(){
+          fileHandler.uploadHandler(req,res);
+        });
+      });
+    });
+    
+    //serve pad.html under /p
+    app.get('/p/:pad/upload', function(req, res, next)
+    {    
+      goToPad(req, res, function() {
+        var filePath = path.normalize(__dirname + "/../static/uploadform.html");
+        res.sendfile(filePath, { maxAge: exports.maxAge });
+      });
+    });
     
     //serve index.html under /
     app.get('/', function(req, res)

@@ -29,6 +29,7 @@ var settings = require('../utils/Settings');
 var securityManager = require("../db/SecurityManager");
 var log4js = require('log4js');
 var messageLogger = log4js.getLogger("message");
+var fileHandler = require("./FileHandler");
 
 /**
  * A associative array that translates a session to a pad
@@ -470,6 +471,10 @@ function handleUserChanges(client, message)
   });
 }
 
+exports.updateFiles = function(pad, callback) {
+  
+}
+
 exports.updatePadClients = function(pad, callback)
 {       
   //skip this step if noone is on this pad
@@ -629,6 +634,7 @@ function handleClientReady(client, message)
   var historicalAuthorData = {};
   var readOnlyId;
   var chatMessages;
+  var files;
 
   async.series([
     //check permissions
@@ -692,7 +698,16 @@ function handleClientReady(client, message)
             readOnlyId = value;
             callback();
           });
-        }
+        },
+        //get the list of files for this pad
+        function(callback)
+        {
+          fileHandler.listFiles(message.padId, function(err, _files){
+            if(ERR(err, callback)) return;
+            files = _files;
+            callback();
+          });
+        },
       ], callback);
     },
     //these db requests all need the pad object
@@ -799,7 +814,8 @@ function handleClientReady(client, message)
             "hideSidebar": false
         },
         "abiwordAvailable": settings.abiwordAvailable(), 
-        "hooks": {}
+        "hooks": {},
+        "files": files
       }
       
       //Add a username to the clientVars if one avaiable

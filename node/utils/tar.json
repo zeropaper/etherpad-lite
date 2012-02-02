@@ -16,6 +16,7 @@
   , "pad_impexp.js"
   , "pad_savedrevs.js"
   , "pad_connectionstatus.js"
+  , "files.js"
   , "pad2.js"
   , "jquery-ui.js"
   , "chat.js"

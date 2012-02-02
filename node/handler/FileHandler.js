@@ -3,6 +3,7 @@ var log4js = require('log4js');
 var fileLogger = log4js.getLogger("file");
 var async = require("async");
 var fs = require("fs");
+var path = require("path");
 
 exports.uploadHandler =  function(req, res)
 {
@@ -71,8 +72,22 @@ exports.uploadHandler =  function(req, res)
         return;
       } 
     
-      res.end("ok");
-      
+      //send the form again
+      var filePath = path.normalize(__dirname + "/../../static/uploadform.html");
+      res.sendfile(filePath, { maxAge: exports.maxAge });
     });
+  });
+}
+
+exports.listFiles = function(padid, callback){
+  fs.readdir("../var/files/"+padid, function(err, files){
+    
+    //this folder doesn't exist, thats not a error but there are no files
+    if(err && err.code == 'ENOENT'){
+      err = null;
+      files = [];
+    }
+    
+    callback(err, files);
   });
 }

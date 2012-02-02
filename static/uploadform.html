@@ -4,11 +4,14 @@
       #uploadbutton {
         font-weight: bold;
       }
+      #uploadfield {
+        width: 190px;
+      }
     </style>
   </head>
   <body>
-    <form method="POST" enctype="multipart/form-data" action="../upload">
-      <div id ="container">
+    <form method="POST" enctype="multipart/form-data" id="form">
+      <div id="container">
         <input type="file" name="file" id="uploadfield" size="10"></input>&nbsp;&nbsp;
         <input type="submit" value="Upload" id="uploadbutton"></input>
         <input type="hidden" name="padid" value="" id="padfield"></input>
