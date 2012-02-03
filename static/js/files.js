@@ -23,6 +23,7 @@ exports.init = function(){
  
 exports.listFiles = function(){
   var files = clientVars.files;
+  files.sort();
   
   //clear the filelist
   $("#filelist").empty();

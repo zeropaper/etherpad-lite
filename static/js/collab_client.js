@@ -26,6 +26,7 @@ $(window).bind("load", function()
 });
 
 var chat = require('/chat').chat;
+var files = require('/files');
 
 // Dependency fill on init. This exists for `pad.socket` only.
 // TODO: bind directly to the socket.
@@ -444,6 +445,11 @@ function getCollabClient(ace2editor, serverVars, initialUserInfo, options, _pad)
     else if (msg.type == "SERVER_MESSAGE")
     {
       callbacks.onServerMessage(msg.payload);
+    }
+    else if (msg.type == "FILE_LIST")
+    {
+      clientVars.files = msg.files;
+      files.listFiles(); 
     }
   }
 

@@ -4,6 +4,9 @@ var fileLogger = log4js.getLogger("file");
 var async = require("async");
 var fs = require("fs");
 var path = require("path");
+var padMessageHandler = require("./PadMessageHandler");
+var ERR = require("async-stacktrace");
+var padManager = require("../db/PadManager");
 
 exports.uploadHandler =  function(req, res)
 {
@@ -75,6 +78,8 @@ exports.uploadHandler =  function(req, res)
       //send the form again
       var filePath = path.normalize(__dirname + "/../../static/uploadform.html");
       res.sendfile(filePath, { maxAge: exports.maxAge });
+
+      padMessageHandler.updateClientsWithNewFileList(padid,ERR);
     });
   });
 }

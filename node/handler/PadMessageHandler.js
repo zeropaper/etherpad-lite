@@ -471,8 +471,36 @@ function handleUserChanges(client, message)
   });
 }
 
-exports.updateFiles = function(pad, callback) {
+exports.updateClientsWithNewFileList = function(padID, callback) {
+  //skip this step if noone is on this pad
+  if(!pad2sessions[padID])
+  {
+    callback();
+    return;
+  }
   
+  //get the list of files
+  fileHandler.listFiles(padID, function(err, files){
+    if(ERR(err, callback)) return;
+    
+    //prepare the message
+    var msg = {
+      "type": "COLLABROOM",
+      "data": {
+        type: "FILE_LIST",
+        files: files
+      }
+    };
+    
+    //loop trough all clients
+    for(var i in pad2sessions[padID])
+    {
+      //send the client the new list
+      socketio.sockets.sockets[pad2sessions[padID][i]].json.send(msg);
+    }
+    
+    callback();
+  });
 }
 
 exports.updatePadClients = function(pad, callback)

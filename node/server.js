@@ -33,7 +33,7 @@ var path = require('path');
 var minify = require('./utils/Minify');
 var formidable = require('formidable');
 var child_process = require('child_process');
-var fileHandler = require('./handler/FileHandler');
+var fileHandler;
 var apiHandler;
 var exportHandler;
 var importHandler;
@@ -95,6 +95,7 @@ async.waterfall([
     padManager = require('./db/PadManager');
     securityManager = require('./db/SecurityManager');
     socketIORouter = require("./handler/SocketIORouter");
+    fileHandler = require('./handler/FileHandler');
     
     //install logging      
     var httpLogger = log4js.getLogger("http");
