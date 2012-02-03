@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+    
 exports.init = function(){
   //set the upload iframe url
   $("#files iframe").attr("src",document.location.pathname + "/upload?" + clientVars.padId); 
@@ -69,5 +69,6 @@ exports.listFiles = function(){
 }
 
 exports.deleteFile = function(fileName){
-  alert(fileName)
+  var pad = require('/pad2').pad;
+  pad.collabClient.sendMessage({type:"DELETE_FILE", file:fileName});
 }

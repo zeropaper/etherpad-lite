@@ -191,6 +191,11 @@ exports.handleMessage = function(client, message)
   {
     handleSuggestUserName(client, message);
   }
+  else if(message.type == "COLLABROOM" && 
+          message.data.type == "DELETE_FILE")
+  {
+    handleFileDelete(client, message);
+  }
   //if the message type is unknown, throw an exception
   else
   {
@@ -955,4 +960,15 @@ function handleClientReady(client, message)
   {
     ERR(err);
   });
+}
+
+function handleFileDelete(client, message){
+  if(typeof message.data.file !== "string"){
+    messageLogger.warn("Dropped message, DELETE_FILE Message has bad file attribute!");
+    return;
+  }
+  
+  var padId = session2pad[client.id];
+  
+  fileHandler.deleteFile(padId, message.data.file, ERR);
 }

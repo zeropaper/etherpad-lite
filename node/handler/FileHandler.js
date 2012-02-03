@@ -96,3 +96,16 @@ exports.listFiles = function(padid, callback){
     callback(err, files);
   });
 }
+
+exports.deleteFile = function(padid, fileName, callback){
+  fs.unlink("../var/files/" + padid + "/" + fileName, function(err){
+    //mute file does not exist error 
+    if(err && err.code == 'ENOENT'){
+      err = null;
+    }
+   
+    if(ERR(err, callback)) return;
+    
+    padMessageHandler.updateClientsWithNewFileList(padid,callback);
+  });
+}
