@@ -293,6 +293,7 @@ async.waterfall([
         return;
       }
       
+      res.header("Access-Control-Allow-Headers", "x-requested-with");
       res.header("Access-Control-Allow-Origin", "*");
       
       hasPadAccess(req, res, function()
