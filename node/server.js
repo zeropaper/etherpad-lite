@@ -239,7 +239,8 @@ async.waterfall([
           hasPadAccess(req, res, function()
           {
             //render the html document
-            exporthtml.getPadHTMLDocument(padId, null, false, function(err, _html)
+            //exporthtml.getPadHTMLDocument(padId, null, false, function(err, _html)
+            exporthtml.getPadHTMLRaw(padId, null, false, function(err, _html)
             {
               if(ERR(err, callback)) return;
               html = _html;
@@ -275,7 +276,7 @@ async.waterfall([
     });
     
     //serve timeslider.html under /p/$padname/timeslider
-    app.get('/p/:pad/:rev?/export/:type', function(req, res, next)
+    app.all('/p/:pad/:rev?/export/:type', function(req, res, next)
     {
       var types = ["pdf", "doc", "txt", "html", "odt", "dokuwiki"];
       //send a 404 if we don't support this filetype
@@ -293,8 +294,8 @@ async.waterfall([
         return;
       }
       
-      res.header("Access-Control-Allow-Headers", "x-requested-with");
-      res.header("Access-Control-Allow-Origin", "*");
+      res.header("Access-Control-Allow-Headers", 'x-requested-with');
+      res.header("Access-Control-Allow-Origin", '*');
       
       hasPadAccess(req, res, function()
       {

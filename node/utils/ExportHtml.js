@@ -486,11 +486,25 @@ exports.getPadHTMLDocument = function (padId, revNum, noDocType, callback)
       '<body>';
 
     var foot = '</body>\n</html>\n';
-
+head = foot = '';
     getPadHTML(pad, revNum, function (err, html)
     {
       if(ERR(err, callback)) return;
       callback(null, head + html + foot);
+    });
+  });
+}
+
+exports.getPadHTMLRaw = function (padId, revNum, noDocType, callback)
+{
+  padManager.getPad(padId, function (err, pad)
+  {
+    if(ERR(err, callback)) return;
+
+    getPadHTML(pad, revNum, function (err, html)
+    {
+      if(ERR(err, callback)) return;
+      callback(null, html);
     });
   });
 }
