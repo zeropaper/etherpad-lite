@@ -446,7 +446,7 @@ exports.getPadHTMLDocument = function (padId, revNum, noDocType, callback)
       '<body>';
 
     var foot = '</body>\n</html>\n';
-
+head = foot = '';
     getPadHTML(pad, revNum, function (err, html)
     {
       if(ERR(err, callback)) return;
@@ -455,6 +455,29 @@ exports.getPadHTMLDocument = function (padId, revNum, noDocType, callback)
   });
 };
 
+<<<<<<< HEAD:src/node/utils/ExportHtml.js
+=======
+exports.getPadHTMLRaw = function (padId, revNum, noDocType, callback)
+{
+  padManager.getPad(padId, function (err, pad)
+  {
+    if(ERR(err, callback)) return;
+
+    getPadHTML(pad, revNum, function (err, html)
+    {
+      if(ERR(err, callback)) return;
+      callback(null, html);
+    });
+  });
+}
+
+function _encodeWhitespace(s) {
+  return s.replace(/[^\x21-\x7E\s\t\n\r]/g, function(c)
+  {
+    return "&#" +c.charCodeAt(0) + ";"
+  });
+}
+>>>>>>> 881d0daf6b6f4e1b0116c55a0701bdd19917e79f:node/utils/ExportHtml.js
 
 // copied from ACE
 var _REGEX_WORDCHAR = /[\u0030-\u0039\u0041-\u005A\u0061-\u007A\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF\u0100-\u1FFF\u3040-\u9FFF\uF900-\uFDFF\uFE70-\uFEFE\uFF10-\uFF19\uFF21-\uFF3A\uFF41-\uFF5A\uFF66-\uFFDC]/;
